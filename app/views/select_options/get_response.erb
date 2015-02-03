@@ -1,0 +1,7 @@
+<%= form_tag("check_it", method: "post") do %>
+  	<%= check_box_tag(:duplicate_book) %>
+	<%= label_tag(:duplicate_book, "Check for a duplicate book") %>
+	<%= check_box_tag(:duplicate_author) %>
+	<%= label_tag(:duplicate_author, "Check for a duplicate author") %>
+	<%= submit_tag 'Check' %>
+<% end %>

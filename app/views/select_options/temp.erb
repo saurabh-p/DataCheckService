@@ -1,0 +1,20 @@
+<table>
+	<% @response["column"].each do |iterable| %>
+	   	<tr>
+	 	    <td><%= iterable %></td>
+	 	    <td><%= iterable %></td>
+	 	    <td><%= iterable %></td>
+	  	</tr>
+	<% end %>
+</table>
+
+<table>
+	<% @response["data"].each do |iterable| %>
+	   	<tr>
+	 	    <td><%= iterable[0] %></td>
+	 	    <td><%= iterable[1] %></td>
+	 	    <td><%= iterable[2] %></td>
+	  	</tr>
+	<% end %>
+</table>
+
