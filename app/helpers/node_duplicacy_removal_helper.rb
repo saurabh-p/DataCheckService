@@ -360,8 +360,14 @@ module NodeDuplicacyRemovalHelper
 			
 			start_clause = "START original_node = node:node_auto_index('" + @path["indexed_name"] + ":" + letters + "*') "
 			
+
 			@detail_of_nodes = self.get_node_details start_clause
 			
+			
+			grouped = @detail_of_nodes.group_by{|row| [row["indexed_main_author_name"]]}
+			@detail_of_nodes = grouped.values.select { |a| a.size > 1 }.flatten
+			# @all_duplicates = @detail_of_nodes.find_all{ |node| @detail_of_nodes.count(node[@path["indexed_name"]]) > 1 }
+			# @detail_of_nodes = @all_duplicates
 			for @current_node in @detail_of_nodes
 				for @comparing_node in @detail_of_nodes
 
@@ -370,6 +376,7 @@ module NodeDuplicacyRemovalHelper
 					is_similar_node_for_author = @checking_for_authors && (@current_node["ID"] != @comparing_node["ID"]) && (@current_node["indexed_main_author_name"] == @comparing_node["indexed_main_author_name"] or check_for_shortened_names(@current_node["name"], @comparing_node["name"] ) )
 
 					if is_similar_node_for_author or is_similar_node_for_books
+						duplicates = []
 						if self.check_duplicates_using_path
 							
 							duplicates << @current_node["ID"]
@@ -379,7 +386,7 @@ module NodeDuplicacyRemovalHelper
 
 							@detail_of_nodes -= [@comparing_node]
 								
-							puts "#{@current_node} #{@comparing_node} #{@detail_of_nodes.length} #{number_of_duplicates} "
+							puts "#{@current_node} #{@comparing_node} #{@detail_of_nodes.length} "
 						end
 					end
 				end
@@ -434,7 +441,7 @@ module NodeDuplicacyRemovalHelper
 		
 		letters_having_duplicacy = []
 		
-		concatenate_list = ["aa"]
+		# concatenate_list = ["aa"]
 		for letters in concatenate_list
 			
 			indexed_node_clause = "START original_node = node:node_auto_index('" + @path["indexed_name"] + ":" + letters + "*') "
@@ -460,6 +467,7 @@ module NodeDuplicacyRemovalHelper
 		node_count = node_details["data"][0][0]
 		distinct_node_count = node_details["data"][0][1]
 		
+		puts node_count.to_s.green.on_yellow
 		if node_count != distinct_node_count
 			has_duplicate = true
 		end
