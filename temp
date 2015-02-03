@@ -1,0 +1,44 @@
+	# def self.set_duplicate_label duplicate_node_ids
+		
+	# 	duplicate_nodes.each do |node_id|
+	# 		match_clause = " MATCH (node) "
+	# 		where_clause = " WHERE ID(node) = " + node_id
+	# 		set_clause_node = " SET node :Duplicate"
+	# 		clause = match_clause + where_clause + set_clause_node 
+	# 		self.query_result clause
+
+	# 	end
+	# end
+	
+	# def self.choose_to_merge threshold
+	# 	threshold_limit = @path["threshold_limit"]
+		
+	# 	if threshold > threshold_limit
+			
+	# 		@detail_of_nodes -= [@comparing_node]
+	# 		duplicate_node_ids << @current_node["ID"]
+			
+	# 		@duplicate_node = @comparing_node["ID"].to_s
+	# 		@current_node = @current_node["ID"].to_s
+			
+
+	# 		puts("Current Node's properties are : ")
+	# 		complete_current_node_info = self.get_information_of @current_node
+	# 		puts complete_current_node_info
+
+	# 		puts("Possible Duplicate Node's properties are : ")
+	# 		complete_duplicate_node_info = self.get_information_of @duplicate_node
+	# 		puts complete_duplicate_node_info
+			
+	# 		puts("Merge duplicate into current (Enter 1) or current into duplicate (Enter 2)")
+	# 		puts(" Press enter for default 1")
+	# 		repsonse = gets.chomp
+
+	# 		if response == "2"
+	# 			@current_node = @comparing_node["ID"].to_s
+	# 			@duplicate_node = @current_node["ID"].to_s
+	# 		end
+	# 		self.resolve_all_connections
+	# 	end
+	# end
+
