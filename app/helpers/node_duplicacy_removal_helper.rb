@@ -21,7 +21,7 @@ module NodeDuplicacyRemovalHelper
 	end
 
 	def self.for_authors alphabets
-		@path = {"node_label" => "Author", "relationship" => "Wrote", "neighbour_node_label" => "Book", "neighbour_node_primary_property" => "indexed_title", "primary_node_property" => "name", "indexed_name" => "indexed_main_author_name", "ID" => 0, "name" => 1, "threshold_limit" => 0, "property_array" => ["ID", "indexed_main_author_name", "name"]}
+		@path = {"node_label" => "Author", "relationship" => "Wrote", "neighbour_node_label" => "Book", "neighbour_node_primary_property" => "indexed_title", "primary_node_property" => "name", "indexed_name" => "indexed_main_author_name", "ID" => 0, "name" => 1, "threshold_limit" => 0, "property_array" => ["ID", "indexed_main_author_name", "name", "about"]}
 		@checking_for_authors = true
 		self.check_duplicacy_alphabetically alphabets
 	end
@@ -34,7 +34,33 @@ module NodeDuplicacyRemovalHelper
 	end
 
 	def self.show_duplicates_by_alphabets alphabets
-		self.for_authors alphabets
+		invalid_response = false
+		begin
+			puts(" Check duplicacy for : ")
+			puts("1: Author ")
+			puts("2: Book ")
+			puts("3: Reading Level ")
+			puts("4: Concentration ")
+			puts("5: Sport ")
+			puts("6: Degree ")
+			user_response = $stdin.gets.chomp.to_i
+			if user_response == 1
+				self.for_authors alphabets
+			elsif user_response == 2
+				self.for_books alphabets
+			elsif user_response == 3
+				self.for_reading_levels
+			elsif user_response == 4
+				self.for_concentrations
+			elsif user_response == 5
+				self.for_sports
+			elsif user_response == 6
+				self.for_degrees
+			else
+				puts "Invalid Response"
+				invalid_response = true
+			end
+		end while invalid_response
 	end
 
 	def self.for_months
@@ -80,8 +106,8 @@ module NodeDuplicacyRemovalHelper
 		duplicate_node_pairs
 	end
 		
-	def self.handle_relationship(is_incoming=true)
-		relationship_data_incoming.each do |relationship|
+	def self.handle_relationship(relationship_data, is_incoming=true)
+		relationship_data.each do |relationship|
 
 			@neighbour_node = relationship["ID"].to_s
 			@relation_type = relationship["relation"].to_s
@@ -302,6 +328,12 @@ module NodeDuplicacyRemovalHelper
 		end		
 		probably_shortened
 	end
+
+	def self.get_duplicates_in_array nodes_array
+		grouped = nodes_array.group_by{|row| [row["indexed_main_author_name"]]}
+		nodes_array = grouped.values.select { |a| a.size > 1 }.flatten
+		nodes_array
+	end
 	
 	def self.find_duplicates_beginning_with letters_having_duplicacy
 
@@ -314,9 +346,7 @@ module NodeDuplicacyRemovalHelper
 
 			@detail_of_nodes = self.get_node_details start_clause
 			
-			
-			grouped = @detail_of_nodes.group_by{|row| [row["indexed_main_author_name"]]}
-			@detail_of_nodes = grouped.values.select { |a| a.size > 1 }.flatten
+			@detail_of_nodes = self.get_duplicates_in_array @detail_of_nodes
 
 			for @current_node in @detail_of_nodes
 				for @comparing_node in @detail_of_nodes
@@ -337,6 +367,19 @@ module NodeDuplicacyRemovalHelper
 							@detail_of_nodes -= [@comparing_node]
 								
 							puts "#{@current_node} #{@comparing_node} #{@detail_of_nodes.length} "
+						elsif ( @current_node[@path["indexed_name"]] == @comparing_node[@path["indexed_name"]] and !(self.has_written_anything or self.check_for_same_author_for_book ) 
+							puts "#{@current_node} #{@comparing_node} #{@detail_of_nodes.length} "
+							puts "Enter 1 to label the above similar nodes as duplicates : "
+							user_response = $stdin.gets.chomp
+							if user_response == 1
+								
+								duplicates << @current_node["ID"]
+								duplicates << @comparing_node["ID"]
+								
+								duplicate_pair << duplicates
+								@detail_of_nodes -= [@comparing_node]
+								
+							end
 						end
 					end
 				end
@@ -362,10 +405,12 @@ module NodeDuplicacyRemovalHelper
 
 		clause = match_clause_node + match_clause_duplicate_node + where_clause + and_clause + return_clause
 		
-		same_neighbours = (self.query_result clause)[0][0]
+		count_same_neighbours = (self.query_result clause)[0][0]
 		
-		if same_neighbours > 0
+		if count_same_neighbours > 0
 			is_same = true
+		elsif count_same_neighbours = 0
+
 		end
 		is_same
 	end
@@ -392,6 +437,7 @@ module NodeDuplicacyRemovalHelper
 		
 		letters_having_duplicacy = []
 		
+		concatenate_list = ["aa"]
 		for letters in concatenate_list
 			
 			indexed_node_clause = "START original_node = node:node_auto_index('" + @path["indexed_name"] + ":" + letters + "*') "
@@ -406,6 +452,20 @@ module NodeDuplicacyRemovalHelper
 		
 		self.find_duplicates_beginning_with letters_having_duplicacy
 	
+	end
+
+	def self.merge_the_nodes 
+		for property in @path["property_array"]
+			set_clause = ""
+			should_update_property = @path[property] == nil or @current_node[property].length < @comparing_node[property]
+				match_clause = "MATCH (original_node), (duplicate_node)"
+				where_clause = " WHERE ID(original_node) = " + @current_node["ID"] + " AND ID(duplicate_node) = " + @duplicate_node["ID"]
+			if should_update_property
+				set_clause += " SET original_node." + property + " = " + @duplicate_node["property"]
+			end
+		end
+		clause = match_clause + where_clause + set_clause
+		self.execute_query clause
 	end
 
 	def self.verify_duplicate_node clause
@@ -425,5 +485,46 @@ module NodeDuplicacyRemovalHelper
 		duplicate_author_count = node_details["data"][0][0] - node_details["data"][0][1]
 		puts duplicate_author_count.to_s.green
 		has_duplicate
+	end
+
+	def self.has_written_anything 
+
+		number_of_relation_of_current = self.relevant_relations_array(@current_node).count
+		number_of_relation_of_comparing = self.relevant_relations_array(@comparing_node).count
+		
+		if number_of_relation_of_current == 0 or number_of_relation_of_comparing == 0
+			any_works = false
+		else
+			any_works = true
+		end	
+		
+		any_works
+	end
+
+	def self.relevant_relations_array  node
+
+		relation = @path["relationship"]
+		match_node = " MATCH (duplicate_node)-[" + relation + "]->(receivers)"
+		where_clause = " WHERE ID(duplicate_node) = " + node["ID"] 
+
+		clause = match_node + where_clause
+
+		relations = (self.get_node_details clause)[0]
+
+		relations
+	end
+
+	def self.check_for_same_author_for_book
+		has_same_authors = false
+		authors_current_node = self.relevant_relations_array @current_node
+
+		authors_duplicate_node = self.relevant_relations_array @duplicate_node	
+		common_authors_list = self.get_duplicates_in_array( authors_current_node + authors_duplicate_node)
+		common_count = common_authors_list.count 
+		if common_count > 0
+			has_same_authors = true
+		end
+		
+		has_same_authors 
 	end
 end
